@@ -26,8 +26,23 @@ jobs:
           --health-retries=5
 
     steps:
-      - name: Checkout repository
+      # Repo do Cypress (o atual)
+      - name: Checkout Cypress repository
         uses: actions/checkout@v4
+
+      # Repo do Spring Boot (onde está o pom.xml)
+      - name: Checkout Spring Boot repository
+        uses: actions/checkout@v4
+        with:
+          repository: smartflow-tech/clinica_dra_thais_souza
+          path: app
+          token: ${{ secrets.SECRET }}
+
+      - name: Debug - confirm pom.xml exists
+        run: |
+          ls -la
+          ls -la app
+          ls -la app/pom.xml
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -40,37 +55,20 @@ jobs:
         with:
           node-version: 22
 
-      # 🔎 Descobre automaticamente onde está o pom.xml e salva em $GITHUB_ENV
-      - name: Detect Maven project directory
-        shell: bash
-        run: |
-          echo "PWD: $(pwd)"
-          echo "Listing root:"
-          ls -la
-          echo "Searching for pom.xml..."
-          POM_PATH=$(find . -maxdepth 4 -name pom.xml -print -quit)
-          if [ -z "$POM_PATH" ]; then
-            echo "ERROR: pom.xml not found (maxdepth 4)."
-            exit 1
-          fi
-          PROJECT_DIR=$(dirname "$POM_PATH")
-          echo "Found pom.xml at: $POM_PATH"
-          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-
       - name: Install dependencies
         run: npm ci
 
       - name: Build Spring Boot application
-        run: mvn -B clean package -DskipTests
-        working-directory: ${{ env.PROJECT_DIR }}
+        working-directory: app
+        run: mvn -B -f pom.xml clean package -DskipTests
 
       - name: Start Spring Boot application
+        working-directory: app
         env:
           SPRING_PROFILES_ACTIVE: ci
         run: |
           java -jar target/*.jar &
           echo "Spring Boot started"
-        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Wait for application to be ready
         run: |
