@@ -100,6 +100,15 @@ jobs:
           echo "Application did not start in time"
           exit 1
 
+      - name: Clear disponibilidades table
+        run: |
+          mysql \
+            -h 127.0.0.1 \
+            -P 3306 \
+            -u root \
+            -proot \
+            chatbot_db < scripts/limpar_disponibilidades.sql
+
       - name: Run Cypress tests
         env:
           CYPRESS_baseUrl: http://localhost:9090
