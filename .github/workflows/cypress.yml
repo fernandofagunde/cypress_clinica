@@ -40,11 +40,29 @@ jobs:
         with:
           node-version: 22
 
+      # 🔎 Descobre automaticamente onde está o pom.xml e salva em $GITHUB_ENV
+      - name: Detect Maven project directory
+        shell: bash
+        run: |
+          echo "PWD: $(pwd)"
+          echo "Listing root:"
+          ls -la
+          echo "Searching for pom.xml..."
+          POM_PATH=$(find . -maxdepth 4 -name pom.xml -print -quit)
+          if [ -z "$POM_PATH" ]; then
+            echo "ERROR: pom.xml not found (maxdepth 4)."
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$POM_PATH")
+          echo "Found pom.xml at: $POM_PATH"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build Spring Boot application
-        run: mvn clean package -DskipTests
+        run: mvn -B clean package -DskipTests
+        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Start Spring Boot application
         env:
@@ -52,11 +70,12 @@ jobs:
         run: |
           java -jar target/*.jar &
           echo "Spring Boot started"
+        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Wait for application to be ready
         run: |
           for i in {1..60}; do
-            if curl -s http://localhost:9090/ > /dev/null; then
+            if curl -sSf http://localhost:9090/ > /dev/null; then
               echo "Application is up!"
               exit 0
             fi
