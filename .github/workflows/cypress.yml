@@ -36,7 +36,7 @@ jobs:
         with:
           repository: smartflow-tech/clinica_dra_thais_souza
           path: app
-          token: ${{ secrets.SECRET }}
+          token: ${{ secrets.SECRET_GERAL }}
 
       - name: Debug - confirm repos
         run: |
