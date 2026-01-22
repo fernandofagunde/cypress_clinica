@@ -20,17 +20,17 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost"
+          --health-cmd="mysqladmin ping -h localhost -proot"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=10
 
     steps:
       # Repo do Cypress (o atual)
       - name: Checkout Cypress repository
         uses: actions/checkout@v4
 
-      # Repo do Spring Boot (onde está o pom.xml)vxzvzcvzxxvc
+      # Repo do Spring Boot (onde está o pom.xml)
       - name: Checkout Spring Boot repository
         uses: actions/checkout@v4
         with:
@@ -60,12 +60,15 @@ jobs:
 
       - name: Build Spring Boot application
         working-directory: app
-        run: mvn -B -f pom.xml clean package -DskipTests
+        run: mvn -B clean package -DskipTests
 
       - name: Start Spring Boot application
         working-directory: app
         env:
           SPRING_PROFILES_ACTIVE: ci
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/chatbot_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: root
         run: |
           java -jar target/*.jar &
           echo "Spring Boot started"
@@ -73,7 +76,7 @@ jobs:
       - name: Wait for application to be ready
         run: |
           for i in {1..60}; do
-            if curl -sSf http://localhost:9090/ > /dev/null; then
+            if curl -sSf http://localhost:9090/actuator/health > /dev/null; then
               echo "Application is up!"
               exit 0
             fi
