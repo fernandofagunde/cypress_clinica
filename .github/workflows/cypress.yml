@@ -9,6 +9,22 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: chatbot_db
+          MYSQL_USER: app
+          MYSQL_PASSWORD: app123
+          MYSQL_ROOT_PASSWORD: root123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot123"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
     steps:
       - name: Checkout (Cypress)
         uses: actions/checkout@v4
@@ -33,6 +49,10 @@ jobs:
 
       - name: Start backend
         working-directory: backend
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/chatbot_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          SPRING_DATASOURCE_USERNAME: app
+          SPRING_DATASOURCE_PASSWORD: app123
         run: |
           nohup java -jar target/*.jar --server.port=9090 > backend.log 2>&1 &
 
@@ -61,5 +81,6 @@ jobs:
 
       - name: Run Cypress
         env:
+          SPRING_PROFILES_ACTIVE: ci
           CYPRESS_baseUrl: http://localhost:9090
         run: npx cypress run
